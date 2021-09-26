@@ -77,7 +77,7 @@ func (handler *HTTPHandler) HandleGetUserPosts(rw http.ResponseWriter, r *http.R
 			http.Error(rw, "invalid page parameter", http.StatusBadRequest)
 			return
 		}
-		token = strings.TrimPrefix(pageToken, userId + ":")
+		token = pageToken[len(userId) + 1:]
 	}
 	limit := 10
 	if numPosts := query.Get("size"); numPosts != "" {
