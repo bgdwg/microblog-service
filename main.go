@@ -11,15 +11,28 @@ import (
 )
 
 func NewServer() *http.Server {
-	handler := &handlers.HTTPHandler{Storage: storage.NewStorage()}
-	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/posts", handler.HandleCreatePost).Methods("POST")
-	router.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}", handler.HandleGetPost).Methods("GET")
-	router.HandleFunc("/api/v1/users/{userId:[0-9a-f]+}/posts", handler.HandleGetUserPosts).Methods("GET")
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8080"
 	}
+	storageMode := os.Getenv("STORAGE_MODE")
+	if storageMode == "" {
+		storageMode = "inmemory"
+	}
+	mongoUrl := os.Getenv("MONGO_URL")
+	mongoDbName := os.Getenv("MONGO_DBNAME")
+
+	var handler handlers.HTTPHandler
+	if storageMode == "inmemory" {
+		handler.Storage = storage.NewMemoryStorage()
+	} else {
+		handler.Storage = storage.NewMongoStorage(mongoUrl, mongoDbName)
+	}
+	router := mux.NewRouter()
+	router.HandleFunc("/api/v1/posts", handler.HandleCreatePost).Methods("POST")
+	router.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}", handler.HandleGetPost).Methods("GET")
+	router.HandleFunc("/api/v1/users/{userId:[0-9a-f]+}/posts", handler.HandleGetUserPosts).Methods("GET")
+
 	return &http.Server{
 		Handler:      router,
 		Addr:         "0.0.0.0:" + port,

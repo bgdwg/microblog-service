@@ -19,10 +19,10 @@ func generateTimestamp() ISOTimestamp {
 }
 
 type Post struct {
-	Id        PostId       `json:"id"`
-	Text      string       `json:"text"`
-	AuthorId  UserId       `json:"authorId"`
-	CreatedAt ISOTimestamp `json:"createdAt"`
+	Id        PostId       `json:"id"         bson:"id"`
+	Text      string       `json:"text"       bson:"text"`
+	AuthorId  UserId       `json:"authorId"   bson:"authorId"`
+	CreatedAt ISOTimestamp `json:"createdAt"  bson:"createdAt"`
 }
 
 func NewPost(text string, userID UserId) *Post {

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"microblogging-service/data"
 	"sync"
@@ -12,7 +13,7 @@ type MemoryStorage struct {
 	Mutex       *sync.RWMutex
 }
 
-func NewStorage() *MemoryStorage {
+func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
 		Posts:     make(map[data.PostId]*data.Post),
 		UserPosts: make(map[data.UserId][]*data.Post),
@@ -20,7 +21,7 @@ func NewStorage() *MemoryStorage {
 	}
 }
 
-func (storage *MemoryStorage) AddPost(post *data.Post) error {
+func (storage *MemoryStorage) AddPost(_ context.Context, post *data.Post) error {
 	storage.Mutex.Lock()
 	defer storage.Mutex.Unlock()
 	storage.Posts[post.Id] = post
@@ -32,7 +33,7 @@ func (storage *MemoryStorage) AddPost(post *data.Post) error {
 	return nil
 }
 
-func (storage *MemoryStorage) GetPost(postId data.PostId) (*data.Post, error) {
+func (storage *MemoryStorage) GetPost(_ context.Context, postId data.PostId) (*data.Post, error) {
 	storage.Mutex.RLock()
 	defer storage.Mutex.RUnlock()
 	post, found := storage.Posts[postId]
@@ -42,7 +43,8 @@ func (storage *MemoryStorage) GetPost(postId data.PostId) (*data.Post, error) {
 	return post, nil
 }
 
-func (storage *MemoryStorage) GetUserPosts(userId data.UserId, offset, limit int) ([]*data.Post, int, error) {
+func (storage *MemoryStorage) GetUserPosts(_ context.Context, userId data.UserId,
+										   offset, limit int) ([]*data.Post, int, error) {
 	storage.Mutex.RLock()
 	defer storage.Mutex.RUnlock()
 	posts, found := storage.UserPosts[userId]

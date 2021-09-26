@@ -35,7 +35,7 @@ func (handler *HTTPHandler) HandleCreatePost(rw http.ResponseWriter, r *http.Req
 		return
 	}
 	post := data.NewPost(reqData.Text, userId)
-	if err = handler.Storage.AddPost(post); err != nil {
+	if err = handler.Storage.AddPost(r.Context(), post); err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -49,7 +49,7 @@ func (handler *HTTPHandler) HandleCreatePost(rw http.ResponseWriter, r *http.Req
 
 func (handler *HTTPHandler) HandleGetPost(rw http.ResponseWriter, r *http.Request) {
 	postId := data.PostId(mux.Vars(r)["postId"])
-	post, err := handler.Storage.GetPost(postId)
+	post, err := handler.Storage.GetPost(r.Context(), postId)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusNotFound)
 		return
@@ -80,7 +80,7 @@ func (handler *HTTPHandler) HandleGetUserPosts(rw http.ResponseWriter, r *http.R
 		}
 	}
 	userId := data.UserId(mux.Vars(r)["userId"])
-	posts, size, err := handler.Storage.GetUserPosts(userId, offset, limit)
+	posts, size, err := handler.Storage.GetUserPosts(r.Context(), userId, offset, limit)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
