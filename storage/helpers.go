@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
@@ -20,8 +21,8 @@ func ensureIndexes(ctx context.Context, collection *mongo.Collection) {
 		},
 		{
 			Keys: bsonx.Doc{
+				{Key: "_id", Value: bsonx.Int32(-1)},
 				{Key: "authorId", Value: bsonx.Int32(1)},
-				{Key: "_id", Value: bsonx.Int32(1)},
 			},
 		},
 	}
@@ -32,22 +33,35 @@ func ensureIndexes(ctx context.Context, collection *mongo.Collection) {
 	}
 }
 
-func copyPosts(ctx context.Context, cursor *mongo.Cursor) ([]*data.Post, error) {
+func copyPosts(ctx context.Context, cursor *mongo.Cursor, limit int) ([]*data.Post, data.PageToken, error) {
 	var posts []*data.Post
 	for cursor.Next(ctx) {
 		var post data.Post
 		if err := cursor.Decode(&post); err != nil {
-			return nil, fmt.Errorf("decoding error - %w", ErrBase)
+			return nil, "", fmt.Errorf("decoding error - %w", ErrBase)
 		}
 		posts = append(posts, &post)
 	}
-	return posts, nil
+	nextToken := data.PageToken("")
+	if limit == len(posts) - 1 {
+		nextToken = data.PageToken(posts[len(posts) - 1].Id)
+		posts = posts[:len(posts) - 1]
+	}
+	return posts, nextToken, nil
 }
 
-func setOptions(offset, limit int) *options.FindOptions {
+func setOptions(limit int) *options.FindOptions {
 	opt := options.Find()
-	opt.SetSkip(int64(offset))
 	opt.SetLimit(int64(limit))
-	opt.SetSort(bson.D{{"createdAt", -1}})
+	opt.SetSort(bson.D{{"_id", -1}})
 	return opt
+}
+
+func setFilter(userId data.UserId, token data.PageToken) bson.M {
+	filter := bson.M{"authorId": userId}
+	if token != "" {
+		objId, _ := primitive.ObjectIDFromHex(string(token))
+		filter["_id"] = bson.M{"$lte": objId}
+	}
+	return filter
 }

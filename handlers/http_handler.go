@@ -7,6 +7,7 @@ import (
 	"microblogging-service/storage"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type HTTPHandler struct {
@@ -64,13 +65,19 @@ func (handler *HTTPHandler) HandleGetPost(rw http.ResponseWriter, r *http.Reques
 
 func (handler *HTTPHandler) HandleGetUserPosts(rw http.ResponseWriter, r *http.Request) {
 	var err error
+	userId := mux.Vars(r)["userId"]
+	if userId == "" {
+		http.Error(rw, "userId not found", http.StatusBadRequest)
+		return
+	}
 	query := r.URL.Query()
-	offset := 0
+	token := ""
 	if pageToken := query.Get("page"); pageToken != "" {
-		if offset, err = strconv.Atoi(pageToken); err != nil {
+		if !strings.HasPrefix(pageToken, userId + ":") {
 			http.Error(rw, "invalid page parameter", http.StatusBadRequest)
 			return
 		}
+		token = strings.TrimPrefix(pageToken, userId + ":")
 	}
 	limit := 10
 	if numPosts := query.Get("size"); numPosts != "" {
@@ -79,8 +86,8 @@ func (handler *HTTPHandler) HandleGetUserPosts(rw http.ResponseWriter, r *http.R
 			return
 		}
 	}
-	userId := data.UserId(mux.Vars(r)["userId"])
-	posts, size, err := handler.Storage.GetUserPosts(r.Context(), userId, offset, limit)
+	posts, nextToken, err := handler.Storage.GetUserPosts(
+		r.Context(), data.UserId(userId), data.PageToken(token), limit)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
@@ -89,8 +96,8 @@ func (handler *HTTPHandler) HandleGetUserPosts(rw http.ResponseWriter, r *http.R
 		Posts:    posts,
 		NextPage: "",
 	}
-	if size > offset + limit {
-		response.NextPage = data.PageToken(strconv.Itoa(offset + limit))
+	if nextToken != "" {
+		response.NextPage = data.GeneratePageToken(data.UserId(userId), nextToken)
 	}
 	rawResponse, _ := json.Marshal(response)
 	rw.Header().Set("Content-Type", "application/json")

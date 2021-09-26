@@ -16,5 +16,6 @@ var (
 type Storage interface {
 	AddPost(ctx context.Context, post *data.Post) error
 	GetPost(ctx context.Context, postId data.PostId) (*data.Post, error)
-	GetUserPosts (ctx context.Context, userId data.UserId, offset, limit int) ([]*data.Post, int, error)
+	GetUserPosts (ctx context.Context, userId data.UserId,
+		token data.PageToken, limit int) ([]*data.Post, data.PageToken, error)
 }

@@ -10,12 +10,16 @@ type UserId string
 type ISOTimestamp string
 type PageToken string
 
-func generatePostId() PostId {
+func GeneratePostId() PostId {
 	return PostId(uuid.New().String())
 }
 
-func generateTimestamp() ISOTimestamp {
+func GenerateTimestamp() ISOTimestamp {
 	return ISOTimestamp(time.Now().UTC().Format(time.RFC3339))
+}
+
+func GeneratePageToken(userId UserId, token PageToken) PageToken {
+	return PageToken(string(userId) + ":" + string(token))
 }
 
 type Post struct {
@@ -27,9 +31,8 @@ type Post struct {
 
 func NewPost(text string, userID UserId) *Post {
 	return &Post{
-		Id:        generatePostId(),
 		Text:      text,
 		AuthorId:  userID,
-		CreatedAt: generateTimestamp(),
+		CreatedAt: GenerateTimestamp(),
 	}
 }

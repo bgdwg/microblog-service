@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"microblogging-service/data"
+	"strconv"
 	"sync"
 )
 
@@ -24,6 +25,7 @@ func NewMemoryStorage() *MemoryStorage {
 func (storage *MemoryStorage) AddPost(_ context.Context, post *data.Post) error {
 	storage.Mutex.Lock()
 	defer storage.Mutex.Unlock()
+	post.Id = data.GeneratePostId()
 	storage.Posts[post.Id] = post
 	posts, found := storage.UserPosts[post.AuthorId]
 	if !found {
@@ -44,17 +46,25 @@ func (storage *MemoryStorage) GetPost(_ context.Context, postId data.PostId) (*d
 }
 
 func (storage *MemoryStorage) GetUserPosts(_ context.Context, userId data.UserId,
-										   offset, limit int) ([]*data.Post, int, error) {
+										   token data.PageToken, limit int) ([]*data.Post, data.PageToken, error) {
 	storage.Mutex.RLock()
 	defer storage.Mutex.RUnlock()
 	posts, found := storage.UserPosts[userId]
 	if !found {
-		return nil, 0, nil
+		return nil, "", nil
+	}
+	offset, err := strconv.Atoi(string(token))
+	if err != nil {
+		return nil, "", err
 	}
 	postsSlice := make([]*data.Post, 0)
 	for i := offset; i < offset+limit && i < len(posts); i++ {
 		postsSlice = append(postsSlice, posts[i])
 	}
-	return postsSlice, len(posts), nil
+	nextToken := ""
+	if offset + limit < len(posts) {
+		nextToken = strconv.Itoa(offset + limit)
+	}
+	return postsSlice, data.PageToken(nextToken), nil
 }
 
