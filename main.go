@@ -32,6 +32,7 @@ func NewServer() *http.Server {
 	router.HandleFunc("/api/v1/posts", handler.HandleCreatePost).Methods("POST")
 	router.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}", handler.HandleGetPost).Methods("GET")
 	router.HandleFunc("/api/v1/users/{userId:[0-9a-f]+}/posts", handler.HandleGetUserPosts).Methods("GET")
+	router.HandleFunc("/maintenance/ping", handler.HandlePing).Methods("GET")
 
 	return &http.Server{
 		Handler:      router,

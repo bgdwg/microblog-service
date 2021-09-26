@@ -99,3 +99,8 @@ func (handler *HTTPHandler) HandleGetUserPosts(rw http.ResponseWriter, r *http.R
 		return
 	}
 }
+
+func (handler *HTTPHandler) HandlePing(rw http.ResponseWriter, r *http.Request) {
+	rw.WriteHeader(http.StatusOK)
+	return
+}
