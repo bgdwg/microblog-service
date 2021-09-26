@@ -30,6 +30,10 @@ func (handler *HTTPHandler) HandleCreatePost(rw http.ResponseWriter, r *http.Req
 		return
 	}
 	userId := data.UserId(r.Header.Get("System-Design-User-Id"))
+	if userId == "" {
+		http.Error(rw, "userId not found", http.StatusUnauthorized)
+		return
+	}
 	post := data.NewPost(reqData.Text, userId)
 	if err = handler.Storage.AddPost(post); err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
@@ -47,7 +51,7 @@ func (handler *HTTPHandler) HandleGetPost(rw http.ResponseWriter, r *http.Reques
 	postId := data.PostId(mux.Vars(r)["postId"])
 	post, err := handler.Storage.GetPost(postId)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
+		http.Error(rw, err.Error(), http.StatusNotFound)
 		return
 	}
 	rawResponse, _ := json.Marshal(post)
