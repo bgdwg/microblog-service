@@ -74,7 +74,7 @@ func (handler *HTTPHandler) HandleGetUserPosts(rw http.ResponseWriter, r *http.R
 	}
 	limit := 10
 	if numPosts := query.Get("size"); numPosts != "" {
-		if limit, err = strconv.Atoi(numPosts); err != nil || limit < 1 || limit > 10 {
+		if limit, err = strconv.Atoi(numPosts); err != nil || limit < 1 || limit > 100 {
 			http.Error(rw, "invalid size parameter", http.StatusBadRequest)
 			return
 		}
