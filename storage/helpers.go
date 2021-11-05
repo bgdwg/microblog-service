@@ -16,11 +16,6 @@ func ensureIndexes(ctx context.Context, collection *mongo.Collection) {
 	indexModels := []mongo.IndexModel{
 		{
 			Keys: bsonx.Doc{
-				{Key: "id", Value: bsonx.Int32(1)},
-			},
-		},
-		{
-			Keys: bsonx.Doc{
 				{Key: "_id", Value: bsonx.Int32(-1)},
 				{Key: "authorId", Value: bsonx.Int32(1)},
 			},
@@ -43,16 +38,20 @@ func copyPosts(ctx context.Context, cursor *mongo.Cursor, limit int) ([]*data.Po
 		posts = append(posts, &post)
 	}
 	nextToken := data.PageToken("")
+	fmt.Println("DEBUG:", len(posts))
+	fmt.Printf("DEBUG: %v", posts)
+	fmt.Println("DEBUG:", limit)
 	if limit == len(posts) - 1 {
-		nextToken = data.PageToken(posts[len(posts) - 1].Id)
-		posts = posts[:len(posts) - 1]
+		nextToken = data.PageToken(posts[limit].Id)
+		fmt.Println("DEBUG:", nextToken)
+		posts = posts[:limit]
 	}
 	return posts, nextToken, nil
 }
 
 func setOptions(limit int) *options.FindOptions {
 	opt := options.Find()
-	opt.SetLimit(int64(limit))
+	opt.SetLimit(int64(limit) + 1)
 	opt.SetSort(bson.D{{"_id", -1}})
 	return opt
 }

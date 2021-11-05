@@ -23,7 +23,7 @@ func GeneratePageToken(userId UserId, token PageToken) PageToken {
 }
 
 type Post struct {
-	Id        PostId       `json:"id"         bson:"id"`
+	Id        PostId       `json:"id"         bson:"_id,omitempty"`
 	Text      string       `json:"text"       bson:"text"`
 	AuthorId  UserId       `json:"authorId"   bson:"authorId"`
 	CreatedAt ISOTimestamp `json:"createdAt"  bson:"createdAt"`

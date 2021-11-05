@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"microblogging-service/data"
 )
 
@@ -44,12 +45,17 @@ func (storage *MongoStorage) AddPost(ctx context.Context, post *data.Post) error
 
 func (storage *MongoStorage) GetPost(ctx context.Context, postId data.PostId) (*data.Post, error) {
 	var post data.Post
-	if err := storage.Posts.FindOne(ctx, bson.M{"id": postId}).Decode(&post); err != nil {
+	objectId, err := primitive.ObjectIDFromHex(string(postId))
+	if err != nil{
+		log.Println("Invalid id")
+	}
+	if err := storage.Posts.FindOne(ctx, bson.M{"_id": objectId}).Decode(&post); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, fmt.Errorf("not found post with id=%v - %w", postId, ErrNotFound)
 		}
 		return nil, fmt.Errorf("finding error - %w", ErrBase)
 	}
+	post.Id = postId
 	return &post, nil
 }
 
