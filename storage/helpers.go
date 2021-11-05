@@ -38,12 +38,8 @@ func copyPosts(ctx context.Context, cursor *mongo.Cursor, limit int) ([]*data.Po
 		posts = append(posts, &post)
 	}
 	nextToken := data.PageToken("")
-	fmt.Println("DEBUG:", len(posts))
-	fmt.Printf("DEBUG: %v", posts)
-	fmt.Println("DEBUG:", limit)
 	if limit == len(posts) - 1 {
 		nextToken = data.PageToken(posts[limit].Id)
-		fmt.Println("DEBUG:", nextToken)
 		posts = posts[:limit]
 	}
 	return posts, nextToken, nil

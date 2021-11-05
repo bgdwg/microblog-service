@@ -53,9 +53,13 @@ func (storage *MemoryStorage) GetUserPosts(_ context.Context, userId data.UserId
 	if !found {
 		return nil, "", nil
 	}
-	offset, err := strconv.Atoi(string(token))
-	if err != nil {
-		return nil, "", err
+	offset := 0
+	if token != "" {
+		var err error
+		offset, err = strconv.Atoi(string(token))
+		if err != nil {
+			return nil, "", err
+		}
 	}
 	postsSlice := make([]*data.Post, 0)
 	for i := offset; i < offset+limit && i < len(posts); i++ {
