@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"microblogging-service/internal/handlers"
@@ -20,17 +21,21 @@ type Config struct {
 	redisUrl 	string
 }
 
+const (
+	defaultTimeout = 15 * time.Second
+	defaultServerPort = "8080"
+	defaultStorageMode = "inmemory"
+)
+
 func SetConfig() *Config {
 	serverPort := os.Getenv("SERVER_PORT")
 	if serverPort == "" {
-		serverPort = "8080"
+		serverPort = defaultServerPort
 	}
-
 	storageMode := os.Getenv("STORAGE_MODE")
 	if storageMode == "" {
-		storageMode = "inmemory"
+		storageMode = defaultStorageMode
 	}
-
 	return &Config{
 		serverPort: 	serverPort,
 		storageMode: 	storageMode,
@@ -42,12 +47,11 @@ func SetConfig() *Config {
 
 func NewServer() *http.Server {
 	config := SetConfig()
-
 	var handler handlers.HTTPHandler
 	if config.storageMode == "inmemory" {
-		handler.Storage = inmemory.NewMemoryStorage()
+		handler.Storage = inmemory.NewStorage()
 	} else {
-		mongoStorage := mongo.NewMongoStorage(config.mongoUrl, config.mongoDbName)
+		mongoStorage := mongo.NewStorage(config.mongoUrl, config.mongoDbName)
 		if config.storageMode == "mongo" {
 			handler.Storage = mongoStorage
 		} else {
@@ -55,23 +59,20 @@ func NewServer() *http.Server {
 		}
 	}
 
-	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/posts",
-		handler.HandleCreatePost).Methods("POST")
-	router.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}",
-		handler.HandleGetPost).Methods("GET")
-	router.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}",
-		handler.HandleUpdatePost).Methods("PATCH")
-	router.HandleFunc("/api/v1/users/{userId:[0-9a-f]+}/posts",
-		handler.HandleGetUserPosts).Methods("GET")
-	router.HandleFunc("/maintenance/ping",
-		handler.HandlePing).Methods("GET")
+	r := mux.NewRouter()
+	r.HandleFunc("/api/v1/posts", handler.HandleCreatePost).Methods(http.MethodPost)
+	r.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}", handler.HandleGetPost).Methods(http.MethodGet)
+	r.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}", handler.HandleUpdatePost).Methods(http.MethodPatch)
+	r.HandleFunc("/api/v1/users/{userId:[0-9a-f]+}/posts", handler.HandleGetUserPosts).Methods(http.MethodGet)
+	r.HandleFunc("/maintenance/ping", func (rw http.ResponseWriter, _ *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+	})
 
 	return &http.Server{
-		Handler:      router,
-		Addr:         "0.0.0.0:" + config.serverPort,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		Handler:      r,
+		Addr:         fmt.Sprintf("0.0.0.0:%s", config.serverPort),
+		ReadTimeout:  defaultTimeout,
+		WriteTimeout: defaultTimeout,
 	}
 }
 

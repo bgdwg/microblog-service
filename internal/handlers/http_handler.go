@@ -15,19 +15,6 @@ type HTTPHandler struct {
 	Storage storage.Storage
 }
 
-type CreatePostRequestData struct {
-	Text string `json:"text"`
-}
-
-type GetUserPostsResponseData struct {
-	Posts    []*data.Post   `json:"posts,omitempty"`
-	NextPage data.PageToken `json:"nextPage,omitempty"`
-}
-
-type UpdatePostRequestData struct {
-	Text string `json:"text"`
-}
-
 func (handler *HTTPHandler) HandleCreatePost(rw http.ResponseWriter, r *http.Request) {
 	var reqData CreatePostRequestData
 	err := json.NewDecoder(r.Body).Decode(&reqData)
@@ -151,6 +138,15 @@ func (handler *HTTPHandler) HandleGetUserPosts(rw http.ResponseWriter, r *http.R
 	}
 }
 
-func (handler *HTTPHandler) HandlePing(rw http.ResponseWriter, _ *http.Request) {
-	rw.WriteHeader(http.StatusOK)
+type CreatePostRequestData struct {
+	Text string `json:"text"`
+}
+
+type GetUserPostsResponseData struct {
+	Posts    []*data.Post   `json:"posts,omitempty"`
+	NextPage data.PageToken `json:"nextPage,omitempty"`
+}
+
+type UpdatePostRequestData struct {
+	Text string `json:"text"`
 }

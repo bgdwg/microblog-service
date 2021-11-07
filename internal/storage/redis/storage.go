@@ -91,6 +91,6 @@ func NewCacheStorage(persistentStorage storage.Storage, redisUrl string) *CacheS
 }
 
 func (c *CacheStorage) postIdKey(id data.PostId) string {
-	return "post:" + string(id)
+	return fmt.Sprintf("post:%s", id)
 }
 

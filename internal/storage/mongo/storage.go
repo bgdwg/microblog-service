@@ -11,68 +11,65 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"log"
 	"microblogging-service/internal/data"
-	storage2 "microblogging-service/internal/storage"
+	"microblogging-service/internal/storage"
 	"time"
 )
 
-type MongoStorage struct {
+type Storage struct {
 	Posts *mongo.Collection
 }
 
-const collName = "postsCollection"
+const collectionName = "postsCollection"
 
-func NewMongoStorage(mongoUrl, dbName string) *MongoStorage {
+func NewStorage(mongoUrl, mongoDbName string) *Storage {
 	ctx := context.Background()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUrl))
 	if err != nil {
 		panic(err)
 	}
-	collection := client.Database(dbName).Collection(collName)
+	collection := client.Database(mongoDbName).Collection(collectionName)
 	ensureIndexes(ctx, collection)
-	return &MongoStorage{
-		Posts: collection,
-	}
+	return &Storage{Posts: collection}
 }
 
-func (storage *MongoStorage) AddPost(ctx context.Context, post *data.Post) error {
-	res, err := storage.Posts.InsertOne(ctx, post)
+func (s *Storage) AddPost(ctx context.Context, post *data.Post) error {
+	res, err := s.Posts.InsertOne(ctx, post)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return storage2.ErrCollision
+			return storage.ErrCollision
 		}
-		return fmt.Errorf("%w: insertion error", storage2.ErrBase)
+		return fmt.Errorf("%w: insertion error", storage.ErrBase)
 	}
 	post.Id = data.PostId(res.InsertedID.(primitive.ObjectID).Hex())
 	return nil
 }
 
-func (storage *MongoStorage) GetPost(ctx context.Context, postId data.PostId) (*data.Post, error) {
+func (s *Storage) GetPost(ctx context.Context, postId data.PostId) (*data.Post, error) {
 	var post data.Post
 	objectId, err := primitive.ObjectIDFromHex(string(postId))
 	if err != nil{
 		log.Println("Invalid id")
 	}
-	if err := storage.Posts.FindOne(ctx, bson.M{"_id": objectId}).Decode(&post); err != nil {
+	if err := s.Posts.FindOne(ctx, bson.M{"_id": objectId}).Decode(&post); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("%w: not found post with id %v ", storage2.ErrNotFound, postId)
+			return nil, fmt.Errorf("%w: not found post with id %v ", storage.ErrNotFound, postId)
 		}
-		return nil, fmt.Errorf("%w: finding error", storage2.ErrBase)
+		return nil, fmt.Errorf("%w: finding error", storage.ErrBase)
 	}
 	post.Id = postId
 	return &post, nil
 }
 
-func (storage *MongoStorage) GetUserPosts(ctx context.Context, userId data.UserId,
+func (s *Storage) GetUserPosts(ctx context.Context, userId data.UserId,
 	token data.PageToken, limit int) ([]*data.Post, data.PageToken, error) {
-	cursor, err := storage.Posts.Find(ctx, setFilter(userId, token), setOptions(limit))
+	cursor, err := s.Posts.Find(ctx, setFilter(userId, token), setOptions(limit))
 	if err != nil {
-		return nil, "", fmt.Errorf("%w: finding error", storage2.ErrBase)
+		return nil, "", fmt.Errorf("%w: finding error", storage.ErrBase)
 	}
-	posts, nextToken, err := copyPosts(ctx, cursor, limit)
-	return posts, nextToken, err
+	return copyPosts(ctx, cursor, limit)
 }
 
-func (storage *MongoStorage) UpdatePost(ctx context.Context, post *data.Post) error {
+func (s *Storage) UpdatePost(ctx context.Context, post *data.Post) error {
 	objectId, err := primitive.ObjectIDFromHex(string(post.Id))
 	if err != nil{
 		log.Println("Invalid id")
@@ -84,8 +81,8 @@ func (storage *MongoStorage) UpdatePost(ctx context.Context, post *data.Post) er
 			"lastModifiedAt": post.LastModifiedAt,
 		},
 	}
-	if _, err = storage.Posts.UpdateOne(ctx, filter, update); err != nil {
-		return fmt.Errorf("update error - %w", storage2.ErrBase)
+	if _, err = s.Posts.UpdateOne(ctx, filter, update); err != nil {
+		return fmt.Errorf("update error - %w", storage.ErrBase)
 	}
 	return nil
 }
@@ -111,7 +108,7 @@ func copyPosts(ctx context.Context, cursor *mongo.Cursor, limit int) ([]*data.Po
 	for cursor.Next(ctx) {
 		var post data.Post
 		if err := cursor.Decode(&post); err != nil {
-			return nil, "", fmt.Errorf("%w: decoding error", storage2.ErrBase)
+			return nil, "", fmt.Errorf("%w: decoding error", storage.ErrBase)
 		}
 		posts = append(posts, &post)
 	}

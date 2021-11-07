@@ -8,48 +8,48 @@ import (
 	"sync"
 )
 
-type MemoryStorage struct {
+type Storage struct {
 	Posts       map[data.PostId]*data.Post
 	UserPosts   map[data.UserId][]*data.Post
 	Mutex       *sync.RWMutex
 }
 
-func NewMemoryStorage() *MemoryStorage {
-	return &MemoryStorage{
+func NewStorage() *Storage {
+	return &Storage{
 		Posts:     make(map[data.PostId]*data.Post),
 		UserPosts: make(map[data.UserId][]*data.Post),
 		Mutex:     new(sync.RWMutex),
 	}
 }
 
-func (storage *MemoryStorage) AddPost(_ context.Context, post *data.Post) error {
-	storage.Mutex.Lock()
-	defer storage.Mutex.Unlock()
+func (s *Storage) AddPost(_ context.Context, post *data.Post) error {
+	s.Mutex.Lock()
+	defer s.Mutex.Unlock()
 	post.Id = data.GeneratePostId()
-	storage.Posts[post.Id] = post
-	posts, found := storage.UserPosts[post.AuthorId]
+	s.Posts[post.Id] = post
+	posts, found := s.UserPosts[post.AuthorId]
 	if !found {
 		posts = make([]*data.Post, 0)
 	}
-	storage.UserPosts[post.AuthorId] = append([]*data.Post{post}, posts...)
+	s.UserPosts[post.AuthorId] = append([]*data.Post{post}, posts...)
 	return nil
 }
 
-func (storage *MemoryStorage) GetPost(_ context.Context, postId data.PostId) (*data.Post, error) {
-	storage.Mutex.RLock()
-	defer storage.Mutex.RUnlock()
-	post, found := storage.Posts[postId]
+func (s *Storage) GetPost(_ context.Context, postId data.PostId) (*data.Post, error) {
+	s.Mutex.RLock()
+	defer s.Mutex.RUnlock()
+	post, found := s.Posts[postId]
 	if !found {
 		return nil, errors.New("post not found")
 	}
 	return post, nil
 }
 
-func (storage *MemoryStorage) GetUserPosts(_ context.Context, userId data.UserId,
+func (s *Storage) GetUserPosts(_ context.Context, userId data.UserId,
 										   token data.PageToken, limit int) ([]*data.Post, data.PageToken, error) {
-	storage.Mutex.RLock()
-	defer storage.Mutex.RUnlock()
-	posts, found := storage.UserPosts[userId]
+	s.Mutex.RLock()
+	defer s.Mutex.RUnlock()
+	posts, found := s.UserPosts[userId]
 	if !found {
 		return nil, "", nil
 	}
@@ -72,13 +72,13 @@ func (storage *MemoryStorage) GetUserPosts(_ context.Context, userId data.UserId
 	return postsSlice, data.PageToken(nextToken), nil
 }
 
-func (storage *MemoryStorage) UpdatePost(_ context.Context, post *data.Post) error {
-	storage.Mutex.Lock()
-	defer storage.Mutex.Unlock()
-	storage.Posts[post.Id] = post
-	for i, userPost := range storage.UserPosts[post.AuthorId] {
+func (s *Storage) UpdatePost(_ context.Context, post *data.Post) error {
+	s.Mutex.Lock()
+	defer s.Mutex.Unlock()
+	s.Posts[post.Id] = post
+	for i, userPost := range s.UserPosts[post.AuthorId] {
 		if userPost.Id == post.Id {
-			storage.UserPosts[post.AuthorId][i] = post
+			s.UserPosts[post.AuthorId][i] = post
 			break
 		}
 	}
