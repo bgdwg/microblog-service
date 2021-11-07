@@ -72,3 +72,16 @@ func (storage *MemoryStorage) GetUserPosts(_ context.Context, userId data.UserId
 	return postsSlice, data.PageToken(nextToken), nil
 }
 
+func (storage *MemoryStorage) UpdatePost(_ context.Context, post *data.Post) error {
+	storage.Mutex.Lock()
+	defer storage.Mutex.Unlock()
+	storage.Posts[post.Id] = post
+	for i, userPost := range storage.UserPosts[post.AuthorId] {
+		if userPost.Id == post.Id {
+			storage.UserPosts[post.AuthorId][i] = post
+			break
+		}
+	}
+	return nil
+}
+

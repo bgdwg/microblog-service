@@ -23,6 +23,10 @@ type GetUserPostsResponseData struct {
 	NextPage data.PageToken `json:"nextPage,omitempty"`
 }
 
+type UpdatePostRequestData struct {
+	Text string `json:"text"`
+}
+
 func (handler *HTTPHandler) HandleCreatePost(rw http.ResponseWriter, r *http.Request) {
 	var reqData CreatePostRequestData
 	err := json.NewDecoder(r.Body).Decode(&reqData)
@@ -53,6 +57,42 @@ func (handler *HTTPHandler) HandleGetPost(rw http.ResponseWriter, r *http.Reques
 	post, err := handler.Storage.GetPost(r.Context(), postId)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusNotFound)
+		return
+	}
+	rawResponse, _ := json.Marshal(post)
+	rw.Header().Set("Content-Type", "application/json")
+	if _, err = rw.Write(rawResponse); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (handler *HTTPHandler) HandleUpdatePost(rw http.ResponseWriter, r *http.Request) {
+	postId := data.PostId(mux.Vars(r)["postId"])
+	var reqData UpdatePostRequestData
+	err := json.NewDecoder(r.Body).Decode(&reqData)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+	userId := data.UserId(r.Header.Get("System-Design-User-Id"))
+	if userId == "" {
+		http.Error(rw, "userId not found", http.StatusUnauthorized)
+		return
+	}
+	post, err := handler.Storage.GetPost(r.Context(), postId)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusNotFound)
+		return
+	}
+	if post.AuthorId != userId {
+		http.Error(rw, err.Error(), http.StatusForbidden)
+		return
+	}
+	post.Text = reqData.Text
+	post.LastModifiedAt = data.GenerateTimestamp()
+	if err = handler.Storage.UpdatePost(r.Context(), post); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
 	rawResponse, _ := json.Marshal(post)

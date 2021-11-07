@@ -37,7 +37,7 @@ func (storage *MongoStorage) AddPost(ctx context.Context, post *data.Post) error
 		if mongo.IsDuplicateKeyError(err) {
 			return ErrCollision
 		}
-		return fmt.Errorf("insertion error - %w", ErrBase)
+		return fmt.Errorf("%w: insertion error", ErrBase)
 	}
 	post.Id = data.PostId(res.InsertedID.(primitive.ObjectID).Hex())
 	return nil
@@ -51,22 +51,40 @@ func (storage *MongoStorage) GetPost(ctx context.Context, postId data.PostId) (*
 	}
 	if err := storage.Posts.FindOne(ctx, bson.M{"_id": objectId}).Decode(&post); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("not found post with id=%v - %w", postId, ErrNotFound)
+			return nil, fmt.Errorf("%w: not found post with id %v ", ErrNotFound, postId)
 		}
-		return nil, fmt.Errorf("finding error - %w", ErrBase)
+		return nil, fmt.Errorf("%w: finding error", ErrBase)
 	}
 	post.Id = postId
 	return &post, nil
 }
 
 func (storage *MongoStorage) GetUserPosts(ctx context.Context, userId data.UserId,
-										  token data.PageToken, limit int) ([]*data.Post, data.PageToken, error) {
+	token data.PageToken, limit int) ([]*data.Post, data.PageToken, error) {
 	cursor, err := storage.Posts.Find(ctx, setFilter(userId, token), setOptions(limit))
 	if err != nil {
-		return nil, "", fmt.Errorf("finding error - %w", ErrBase)
+		return nil, "", fmt.Errorf("%w: finding error", ErrBase)
 	}
 	posts, nextToken, err := copyPosts(ctx, cursor, limit)
 	return posts, nextToken, err
+}
+
+func (storage *MongoStorage) UpdatePost(ctx context.Context, post *data.Post) error {
+	objectId, err := primitive.ObjectIDFromHex(string(post.Id))
+	if err != nil{
+		log.Println("Invalid id")
+	}
+	filter := bson.M{"_id": objectId}
+	update := bson.M{
+		"$set": bson.M{
+			"text": post.Text,
+			"lastModifiedAt": post.LastModifiedAt,
+		},
+	}
+	if _, err = storage.Posts.UpdateOne(ctx, filter, update); err != nil {
+		return fmt.Errorf("update error - %w", ErrBase)
+	}
+	return nil
 }
 
 

@@ -18,4 +18,5 @@ type Storage interface {
 	GetPost(ctx context.Context, postId data.PostId) (*data.Post, error)
 	GetUserPosts (ctx context.Context, userId data.UserId,
 		token data.PageToken, limit int) ([]*data.Post, data.PageToken, error)
+	UpdatePost(ctx context.Context, post *data.Post) error
 }

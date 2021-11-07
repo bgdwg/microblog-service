@@ -33,7 +33,7 @@ func copyPosts(ctx context.Context, cursor *mongo.Cursor, limit int) ([]*data.Po
 	for cursor.Next(ctx) {
 		var post data.Post
 		if err := cursor.Decode(&post); err != nil {
-			return nil, "", fmt.Errorf("decoding error - %w", ErrBase)
+			return nil, "", fmt.Errorf("%w: decoding error", ErrBase)
 		}
 		posts = append(posts, &post)
 	}
