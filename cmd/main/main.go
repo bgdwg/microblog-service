@@ -17,7 +17,7 @@ type Config struct {
 	serverPort 	string
 	storageMode string
 	mongoUrl 	string
-	mongoDbName string
+	mongoDbName	string
 	redisUrl 	string
 }
 

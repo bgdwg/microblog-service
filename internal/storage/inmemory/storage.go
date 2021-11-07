@@ -46,7 +46,8 @@ func (s *Storage) GetPost(_ context.Context, postId data.PostId) (*data.Post, er
 }
 
 func (s *Storage) GetUserPosts(_ context.Context, userId data.UserId,
-										   token data.PageToken, limit int) ([]*data.Post, data.PageToken, error) {
+	token data.PageToken, limit int) ([]*data.Post, data.PageToken, error) {
+
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
 	posts, found := s.UserPosts[userId]
