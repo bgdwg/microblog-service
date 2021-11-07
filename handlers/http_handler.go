@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"log"
 	"microblogging-service/data"
 	"microblogging-service/storage"
 	"net/http"
@@ -85,8 +86,11 @@ func (handler *HTTPHandler) HandleUpdatePost(rw http.ResponseWriter, r *http.Req
 		http.Error(rw, err.Error(), http.StatusNotFound)
 		return
 	}
+	log.Printf("authorID = %s, userID = %s\n", post.AuthorId, userId)
+	log.Printf("post = %v\n", post)
 	if post.AuthorId != userId {
-		http.Error(rw, err.Error(), http.StatusForbidden)
+		log.Println("Hello")
+		http.Error(rw, "permission denied", http.StatusForbidden)
 		return
 	}
 	post.Text = reqData.Text
