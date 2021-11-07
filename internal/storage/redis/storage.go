@@ -1,4 +1,4 @@
-package storage
+package redis
 
 import (
 	"context"
@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"log"
-	"microblogging-service/data"
+	"microblogging-service/internal/data"
+	"microblogging-service/internal/storage"
 	"time"
 )
 
 type CacheStorage struct {
-	persistence Storage
-	client 		*redis.Client
+	persistence storage.Storage
+	client      *redis.Client
 }
 
 const expirationTime = 1 * time.Hour
@@ -34,7 +35,7 @@ func (c *CacheStorage) AddPost(ctx context.Context, post *data.Post) error {
 		return err
 	}
 	if err := c.setPost(ctx, post); err != nil {
-		return fmt.Errorf("%w: %s", ErrBase, err)
+		return fmt.Errorf("%w: %s", storage.ErrBase, err)
 	}
 	return nil
 }
@@ -46,12 +47,12 @@ func (c *CacheStorage) GetPost(ctx context.Context, postId data.PostId) (*data.P
 	case err == redis.Nil:
 	// continue execution
 	case err != nil:
-		return nil, fmt.Errorf("%w: failed to get value from cache due to error - %s", ErrBase, err)
+		return nil, fmt.Errorf("%w: failed to get value from cache due to error - %s", storage.ErrBase, err)
 	default:
 		log.Printf("Successfully obtained data from cache for key %s", postId)
 		var post data.Post
 		if err = json.Unmarshal([]byte(rawData), &post); err != nil {
-			return nil, fmt.Errorf("%w: failed to unmarshall json due to an error - %s", ErrBase, err)
+			return nil, fmt.Errorf("%w: failed to unmarshall json due to an error - %s", storage.ErrBase, err)
 		}
 		return &post, nil
 	}
@@ -61,7 +62,7 @@ func (c *CacheStorage) GetPost(ctx context.Context, postId data.PostId) (*data.P
 		return nil, err
 	}
 	if err = c.setPost(ctx, post); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrBase, err)
+		return nil, fmt.Errorf("%w: %s", storage.ErrBase, err)
 	}
 	return post, nil
 }
@@ -77,12 +78,12 @@ func (c *CacheStorage) UpdatePost(ctx context.Context, post *data.Post) error {
 		return err
 	}
 	if err := c.setPost(ctx, post); err != nil {
-		return fmt.Errorf("%w: %s", ErrBase, err)
+		return fmt.Errorf("%w: %s", storage.ErrBase, err)
 	}
 	return nil
 }
 
-func NewCacheStorage(persistentStorage Storage, redisUrl string) *CacheStorage {
+func NewCacheStorage(persistentStorage storage.Storage, redisUrl string) *CacheStorage {
 	return &CacheStorage{
 		persistence: persistentStorage,
 		client: redis.NewClient(&redis.Options{Addr: redisUrl}),

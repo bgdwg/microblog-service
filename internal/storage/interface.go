@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"microblogging-service/data"
+	"microblogging-service/internal/data"
 )
 
 var (

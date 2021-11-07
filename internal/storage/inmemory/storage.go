@@ -1,9 +1,9 @@
-package storage
+package inmemory
 
 import (
 	"context"
 	"errors"
-	"microblogging-service/data"
+	"microblogging-service/internal/data"
 	"strconv"
 	"sync"
 )

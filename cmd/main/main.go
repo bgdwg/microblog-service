@@ -3,8 +3,10 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"log"
-	"microblogging-service/handlers"
-	"microblogging-service/storage"
+	"microblogging-service/internal/handlers"
+	"microblogging-service/internal/storage/inmemory"
+	"microblogging-service/internal/storage/mongo"
+	"microblogging-service/internal/storage/redis"
 	"net/http"
 	"os"
 	"time"
@@ -43,29 +45,25 @@ func NewServer() *http.Server {
 
 	var handler handlers.HTTPHandler
 	if config.storageMode == "inmemory" {
-		handler.Storage = storage.NewMemoryStorage()
+		handler.Storage = inmemory.NewMemoryStorage()
 	} else {
-		mongoStorage := storage.NewMongoStorage(config.mongoUrl, config.mongoDbName)
+		mongoStorage := mongo.NewMongoStorage(config.mongoUrl, config.mongoDbName)
 		if config.storageMode == "mongo" {
 			handler.Storage = mongoStorage
 		} else {
-			handler.Storage = storage.NewCacheStorage(mongoStorage, config.redisUrl)
+			handler.Storage = redis.NewCacheStorage(mongoStorage, config.redisUrl)
 		}
 	}
 
 	router := mux.NewRouter()
-
 	router.HandleFunc("/api/v1/posts",
 		handler.HandleCreatePost).Methods("POST")
-
 	router.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}",
 		handler.HandleGetPost).Methods("GET")
 	router.HandleFunc("/api/v1/posts/{postId:[A-Za-z0-9_\\-]+}",
 		handler.HandleUpdatePost).Methods("PATCH")
-
 	router.HandleFunc("/api/v1/users/{userId:[0-9a-f]+}/posts",
 		handler.HandleGetUserPosts).Methods("GET")
-
 	router.HandleFunc("/maintenance/ping",
 		handler.HandlePing).Methods("GET")
 
